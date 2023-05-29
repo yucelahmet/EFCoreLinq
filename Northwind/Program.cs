@@ -8,6 +8,7 @@ using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace Northwind
 {
@@ -436,71 +437,132 @@ namespace Northwind
 
 
 			//32.	Create a report that shows all companies by name that sell products in the Seafood category.
-			//32.soru cevabı=
+			//32.soru cevabı= Bu soruyu atladık.
 
-			var result = db.Categories.Include(p => p.Products).Where(p => p.Products.P == "Seafood").Select(c => new Category
-			{
-				CategoryName = c.CategoryName
+			//var result = db.Categories.Include(p => p.Products).Where(p => p.Products.P == "Seafood").Select(c => new Category
+			//{
+			//	CategoryName = c.CategoryName
 
-			});
-			foreach (var product in result)
-			{
-				Console.WriteLine(product.CategoryName);
-			}
+			//});
+			//foreach (var product in result)
+			//{
+			//	Console.WriteLine(product.CategoryName);
+			//}
 
 
 
 
 			//33.	Create a report that shows the order ids and the associated employee names for orders that shipped after the required date. It should return the following. There should be 37 rows returned.
-			//32.soru cevabı=
+			//33.soru cevabı=select E.FirstName,E.FirstName,O.OrderID  from Orders O JOIN Employees E on E.EmployeeID=O.EmployeeID where O.ShippedDate>O.RequiredDate
 
-			//var result = db.Categories.Include(p => p.Products).Where(p => p.Products.P == "Seafood").Select(c => new Category
+			//var result = db.Orders.Include(o => o.Employee).Where(o => o.ShippedDate > o.RequiredDate).Select(o => new 
 			//{
-			//	CategoryName = c.CategoryName
+			//	o.OrderDate,
+			//	o.ShippedDate,
+			//	o.Employee.FirstName,
+			//	o.Employee.LastName,
+			//	o.OrderId
 
 			//});
-			//foreach (var product in result)
+			//foreach (var order in result)
 			//{
-			//	Console.WriteLine(product.CategoryName);
+			//	Console.WriteLine(order.FirstName + " " + order.LastName + " " + order.OrderId);
 			//}
+			//Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
+
+
+			//Başka çözüm yöntemi
+			//List<Order> result = db.Orders.Include(o => o.Employee).Where(o => o.ShippedDate > o.RequiredDate).ToList<Order>();
+			//foreach (var order in result)
+			//{
+			//	Console.WriteLine(order.Employee.FirstName + "\t" + order.Employee.LastName + "\t" + order.OrderId);
+			//}
+			//Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
+
+
+			//Join li yöntem...
+			//var result = db.Orders.Where(o=>o.ShippedDate>o.RequiredDate).Join(db.Employees, o => o.EmployeeId, e => e.EmployeeId, (order,Employee)=>new 
+			//{
+			//	order.OrderId,
+			//	Employee.FirstName, 
+			//	Employee.LastName,
+			//});
+			//foreach (var j in result)
+			//{
+			//	Console.WriteLine(j.FirstName + "\t" + j.LastName + "\t" + j.OrderId);
+			//}
+			//Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
 
 
 
 
 			//34.	Create a report that shows the total quantity of products (from the Order_Details table) ordered. Only show records for products for which the quantity ordered is fewer than 200. The report should return the following 5 rows.
-			//32.soru cevabı=
+			//34.soru cevabı=Select P.ProductName, SUM(O.Quantity) as TotalUnits from [Order Details] O join Products P on O.ProductID=P.ProductID  Group by P.ProductName having SUM(O.Quantity)<200
 
-			//var result = db.Categories.Include(p => p.Products).Where(p => p.Products.P == "Seafood").Select(c => new Category
-			//{
-			//	CategoryName = c.CategoryName
-
+			//var result = db.OrderDetails.Include(od => od.Product).GroupBy(od => od.Product.ProductName).Where(x => x.Sum(x => x.Quantity) < 200).Select(x=> new 
+			//{ 
+			//	ProductName= x.Key,
+			//	TotalUnits= x.Sum(x=> x.Quantity)
 			//});
-			//foreach (var product in result)
+			//foreach (var j in result)
 			//{
-			//	Console.WriteLine(product.CategoryName);
+			//	Console.WriteLine(j.ProductName + "\t " + j.TotalUnits);
 			//}
+			//Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
+
+			//GroupJoin yöntemi
+			//var result = db.Products.GroupJoin(db.OrderDetails,p=>p.ProductId,od=>od.ProductId,(product, orderdetail) => new
+			//{
+			//	product.ProductName,
+			//	TotalUnits=orderdetail.Sum(od=>od.Quantity)
+			//}).Where(res=>res.TotalUnits<200);
+			//foreach (var j in result)
+			//{
+			//	Console.WriteLine(j.ProductName + "\t" + j.TotalUnits );
+			//}
+			//Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
+
+
+			//join Yöntemi
+			//var result = db.OrderDetails.Join(db.Products,od => od.ProductId,p=>p.ProductId,(orderdetail,product)=> new 
+			//{
+			//	orderdetail.Quantity,
+			//	product.ProductName,
+			//}).GroupBy(x=>x.ProductName).Select(x=> new 
+			//{
+			//	x.Key,
+			//	TotalUnits=x.Sum(x=>x.Quantity)
+			//}).Where(res => res.TotalUnits < 200);
+			//foreach (var j in result)
+			//{
+			//	Console.WriteLine(j.Key + "\t " + j.TotalUnits);
+			//}
+			//Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
+
 
 
 
 
 			//35.	Create a report that shows the total number of orders by Customer since December 31, 1996. The report should only return rows for which the NumOrders is greater than 15. The report should return the following 5 rows.
-			//32.soru cevabı=
+			//35.soru cevabı=select c.CompanyName, Count(o.OrderID) as NumOrders from Customers c join Orders o on c.CustomerID=o.CustomerID  where o.OrderDate > '12/31/1996' group by CompanyName having Count(o.OrderID) > 15
 
-			//var result = db.Categories.Include(p => p.Products).Where(p => p.Products.P == "Seafood").Select(c => new Category
-			//{
-			//	CategoryName = c.CategoryName
+			var result = db.Customers.GroupJoin(db.Orders.Where(o=>o.OrderDate>new DateTime(1996,12,31)), c => c.CustomerId, o => o.CustomerId, (customer, gruplanmisOrderTablosu) => new
+			{
+				customer.CompanyName,
+				OrderCount = gruplanmisOrderTablosu.Count()
+			}).Where(res => res.OrderCount > 15);
+			foreach (var j in result)
+			{
+				Console.WriteLine(j.CompanyName + "\t" + j.OrderCount);
+			}
+			Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
 
-			//});
-			//foreach (var product in result)
-			//{
-			//	Console.WriteLine(product.CategoryName);
-			//}
 
 
 
 
 			//36.	Create a report that shows the company name, order id, and total price of all products of which Northwind has sold more than $10,000 worth. There is no need for a GROUP BY clause in this report.
-			//32.soru cevabı=
+			//36.soru cevabı=
 
 			//var result = db.Categories.Include(p => p.Products).Where(p => p.Products.P == "Seafood").Select(c => new Category
 			//{
