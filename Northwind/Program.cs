@@ -546,33 +546,35 @@ namespace Northwind
 			//35.	Create a report that shows the total number of orders by Customer since December 31, 1996. The report should only return rows for which the NumOrders is greater than 15. The report should return the following 5 rows.
 			//35.soru cevabı=select c.CompanyName, Count(o.OrderID) as NumOrders from Customers c join Orders o on c.CustomerID=o.CustomerID  where o.OrderDate > '12/31/1996' group by CompanyName having Count(o.OrderID) > 15
 
-			var result = db.Customers.GroupJoin(db.Orders.Where(o=>o.OrderDate>new DateTime(1996,12,31)), c => c.CustomerId, o => o.CustomerId, (customer, gruplanmisOrderTablosu) => new
-			{
-				customer.CompanyName,
-				OrderCount = gruplanmisOrderTablosu.Count()
-			}).Where(res => res.OrderCount > 15);
-			foreach (var j in result)
-			{
-				Console.WriteLine(j.CompanyName + "\t" + j.OrderCount);
-			}
-			Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
+			//var result = db.Customers.GroupJoin(db.Orders.Where(o=>o.OrderDate>new DateTime(1996,12,31)), c => c.CustomerId, o => o.CustomerId, (customer, gruplanmisOrderTablosu) => new
+			//{
+			//	customer.CompanyName,
+			//	OrderCount = gruplanmisOrderTablosu.Count()
+			//}).Where(res => res.OrderCount > 15);
+			//foreach (var j in result)
+			//{
+			//	Console.WriteLine(j.CompanyName + "\t" + j.OrderCount);
+			//}
+			//Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
 
 
 
 
 
 			//36.	Create a report that shows the company name, order id, and total price of all products of which Northwind has sold more than $10,000 worth. There is no need for a GROUP BY clause in this report.
-			//36.soru cevabı=
+			//36.soru cevabı= Select c.CompanyName, o.OrderID, ((od.UnitPrice*od.Quantity)*(1-od.Discount)) as TotalPrice from Customers c join Orders o on c.CustomerID=o.CustomerID  join [Order Details] od on o.OrderID=od.OrderID where (od.UnitPrice*od.Quantity*(1-od.Discount))>=10000
 
-			//var result = db.Categories.Include(p => p.Products).Where(p => p.Products.P == "Seafood").Select(c => new Category
-			//{
-			//	CategoryName = c.CategoryName
-
-			//});
-			//foreach (var product in result)
-			//{
-			//	Console.WriteLine(product.CategoryName);
-			//}
+			var result = db.OrderDetails.Include(od => od.Order).ThenInclude(o => o.Customer).Where(od => (od.UnitPrice * (decimal)od.Quantity) * (decimal)(1 - od.Discount) >= 10000).Select(res => new
+			{
+				res.Order.Customer.CompanyName,
+				res.OrderId,
+				TotalPrice=(res.UnitPrice*res.Quantity)*(1-(decimal)res.Discount)
+			});
+			foreach (var o in result)
+			{
+				Console.WriteLine(o.CompanyName+"\t"+ o.OrderId + "\t" + o.TotalPrice);
+			}
+			Console.WriteLine("Toplam Satır Sayısı :" + result.Count(a => true));
 		}
 	}
 }
